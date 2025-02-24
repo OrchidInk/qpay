@@ -2,11 +2,13 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 type Config struct {
@@ -41,7 +43,7 @@ func LoadConfig() *Config {
 	// Load environment variables from .env file
 	err := godotenv.Load(".env")
 	if err != nil {
-		log.Println("⚠️  No .env file found, using system environment variables")
+		log.Info().Msg("⚠️  No .env file found, using system environment variables")
 	}
 
 	config := &Config{}
@@ -86,4 +88,15 @@ func getEnvAsInt(key string, defaultValue int) int {
 		return value
 	}
 	return defaultValue
+}
+
+func SetLogger() {
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+	log.Logger = log.Output(zerolog.ConsoleWriter{
+		Out:        os.Stdout,
+		TimeFormat: time.RFC3339,
+	}).With().Caller().Logger()
+
+	log.Info().Msg("✅ Logger initialized successfully")
 }

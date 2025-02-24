@@ -1,39 +1,60 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
-	"os"
-
+	"qpay/config"
+	"qpay/routes"
 	"qpay/routes/middlewares"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
+	// Initialize logger first
+	config.SetLogger()
+
+	// Load configuration
+	config.LoadConfig()
+	if config.AppConfig == nil {
+		log.Fatal().Msg("❌ AppConfig is nil. Did you call LoadConfig() before ConnectDatabase()?")
+		return
+	}
+
+	// Connect to the database
+	config.ConnectDatabase()
+
+	// Create Echo instance
 	e := echo.New()
 
-	// Global middleware (your custom middlewares)
-	e.Use(middleware.Logger())           // Default Echo logger
-	e.Use(middleware.Recover())          // Recover from panics
-	e.Use(middlewares.PopulateContext)   // Add request timeout
-	e.Use(middlewares.IPAuth)            // Restrict access by IP
-	e.Use(middlewares.HeaderAuth)        // Validate API key from headers
+	// Middleware for request logging
+	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+		LogURI:      true,
+		LogStatus:   true,
+		LogRemoteIP: true,
+		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+			log.Info().Msg(fmt.Sprintf("%d %s %s", v.Status, v.URI, v.RemoteIP))
+			return nil
+		},
+	}))
 
-	// Example route
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, Echo with Custom Middleware!")
+	// Custom middlewares
+	e.Use(middlewares.PopulateContext)
+	e.Use(middlewares.IPAuth)
+
+	// Example API route
+	e.GET("/api", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{
+			"message": "Hello, World!",
+		})
 	})
 
-	// Example secured route
-	e.GET("/api/v1/invoices/:invoiceID", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]string{"message": "Invoice details here"})
-	})
+	// Initialize Invoice routes
+	routes.InvoiceRoute(e)
 
-	// Start server
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-	e.Logger.Fatal(e.Start(":" + port))
+	// Start the server
+	log.Info().Msg("🚀 Server starting on :1323")
+	e.Logger.Fatal(e.Start(":1323"))
 }
