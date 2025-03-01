@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"qpay/config"
+	"qpay/models"
 	"qpay/routes"
 	"qpay/routes/middlewares"
 
@@ -26,6 +27,11 @@ func main() {
 	// Connect to the database
 	config.ConnectDatabase()
 
+	err := config.DB.AutoMigrate(&models.Invoice{})
+	if err != nil {
+		log.Fatal().Msg("❌ Migration failed:")
+	}
+	log.Info().Msg("🚀 Database migrated successfully")
 	// Create Echo instance
 	e := echo.New()
 

@@ -32,8 +32,8 @@ type Invoice struct {
 	CalledAt      time.Time      `json:"calledAt" gorm:"not null"`
 	ExpireAt      *time.Time     `json:"expireAt,omitempty"`
 	InvoiceNumber string         `json:"invoiceNumber" gorm:"unique;not null"`
-	Request       map[string]interface{} `json:"-" bson:"request,omitempty" validate:"required"`
-	Response      map[string]interface{} `json:"-" bson:"response,omitempty" validate:"required"`
+	Request  	  []byte 		 `json:"-" gorm:"type:jsonb"`
+    Response 	  []byte 		 `json:"-" gorm:"type:jsonb"`
 	InvoiceID     string         `json:"invoiceID" gorm:"unique;not null"`
 	State         QpayState      `json:"state" gorm:"type:varchar(50);not null;default:'unpaid'"`
 	DeletedAt     gorm.DeletedAt `json:"deletedAt" gorm:"index"`
@@ -48,11 +48,11 @@ func MigrateInvoiceModel() {
 }
 
 func (i *Invoice) Create(ctx context.Context) (err error) {
-	if err = validate.Struct(i); err != nil {
-		return
-	}
-	err = config.DB.WithContext(ctx).Create(i).Error
-	return
+    if err = validate.Struct(i); err != nil {
+        return
+    }
+    err = config.DB.WithContext(ctx).Model(&Invoice{}).Create(i).Error
+    return
 }
 
 func (i *Invoice) Read(ctx context.Context) (err error) {

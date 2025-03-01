@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -70,7 +69,7 @@ func LoadConfig() *Config {
 	config.App.APIKey = getEnv("API_KEY", "default-api-key")
 
 	AppConfig = config
-	fmt.Println("✅ Configuration loaded successfully")
+	log.Info().Msg("✅ Configuration loaded successfully")
 	return config
 }
 
