@@ -34,6 +34,19 @@ func CreateInvoice(c echo.Context) error {
             Message: err.Error()})
     }
 
+    // invoiceIdParam := c.Param("invoiceNumber")
+	// existingInvoice := models.Invoice{InvoiceID: invoiceIdParam}
+    // log.Info().Msgf("Checking invoice: %v", existingInvoice)
+    // invoice := models.Invoice{InvoiceID: invoiceIdParam}
+
+	// err := invoice.ReadForInvoiceID(c.Request().Context())
+    // if err != nil {
+	// 	log.Error().Err(err).Msgf("Could not read invoice: %v", err.Error())
+	// 	return c.JSON(http.StatusBadRequest, errResponse{
+	// 		Code:    ErrRead.Code,
+	// 		Message: err.Error()})
+	// }
+
     // Always create a new invoice without checking existing records
     createSendInvoice := func() (res map[string]interface{}, err error) {
         expireSecondsEnv := os.Getenv("QPAY_INVOICE_EXPIRE_SECONDS")
@@ -93,9 +106,11 @@ func CreateInvoice(c echo.Context) error {
             return
         }
 
+        log.Info().Msgf("Invoice created: %v", invoiceID)
         invoice.Request = jsonReq
         invoice.Response = jsonRes
         invoice.InvoiceID = invoiceID
+        log.Info().Msgf("Invoice: %v", invoice.InvoiceID)
 
         // Save the invoice to the database
         if err = invoice.Create(c.Request().Context()); err != nil {
@@ -143,39 +158,52 @@ func Callback(c echo.Context) error {
 }
 
 func CheckInvoice(c echo.Context) error {
-	invoiceIDParam := c.Param("invoiceID")
-	var invoice models.Invoice
-	err := models.DB.First(&invoice, "invoice_id = ?", invoiceIDParam).Error
+	// getting invoice
+	invoiceIdParam := c.Param("invoiceID")
+	invoice := models.Invoice{
+		InvoiceID: invoiceIdParam,
+	}
+
+	err := invoice.ReadForInvoiceID(c.Request().Context())
 	if err != nil {
-		log.Error().Err(err).Msg("Invoice not found")
+		log.Error().Err(err).Msgf("Could not read invoice: %v", err.Error())
+		return c.JSON(http.StatusBadRequest, errResponse{
+			Code:    ErrRead.Code,
+			Message: err.Error()})
+	}
+	// checking if invoice is already paid
+	if invoice.State == models.Paid {
+		return c.JSON(http.StatusOK, response{
+			Message: "Success",
+			Data:    &echo.Map{"isPaid": invoice.State == models.Paid}})
+	}
+
+	// sending check invoice request
+	qpayClient, err := q.NewClient()
+	if err != nil {
+		log.Error().Err(err).Msgf("Could not get qpay client: %v", err.Error())
+		return c.JSON(http.StatusBadRequest, errResponse{
+			Code:    ErrBind.Code,
+			Message: err.Error()})
+	}
+	isPaid, err := qpayClient.CheckInvoice(invoiceIdParam)
+	if err != nil {
+		log.Error().Err(err).Msgf("Could not check qpay invoice: %v", err.Error())
 		return c.JSON(http.StatusBadRequest, errResponse{
 			Code:    ErrRead.Code,
 			Message: err.Error()})
 	}
 
-	if invoice.State == models.Paid {
-		return c.JSON(http.StatusOK, &echo.Map{"isPaid": true})
-	}
-
-	qpayClient, err := q.NewClient()
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to create QPay client")
-		return echo.ErrInternalServerError
-	}
-
-	isPaid, err := qpayClient.CheckInvoice(invoiceIDParam)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to check QPay invoice status")
-		return echo.ErrInternalServerError
-	}
-
+	// updating paid
 	if isPaid {
-		invoice.State = models.Paid
-		if err = models.DB.Save(&invoice).Error; err != nil {
-			log.Error().Err(err).Msg("Failed to update invoice status")
-			return echo.ErrInternalServerError
+		log.Info().Msgf("Invoice is paid: %v", invoiceIdParam)
+		err = invoice.Update(c.Request().Context(), models.Invoice{State: models.Paid})
+		if err != nil {
+			log.Info().Err(err).Msg("Could not update invoice.")
+			return c.JSON(http.StatusBadRequest, errResponse{
+				Code:    ErrUpdate.Code,
+				Message: "Could not update invoice"})
 		}
 	}
-
 	return c.JSON(http.StatusOK, &echo.Map{"isPaid": invoice.State == models.Paid})
 }

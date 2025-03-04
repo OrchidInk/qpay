@@ -56,7 +56,12 @@ func (i *Invoice) Create(ctx context.Context) (err error) {
 }
 
 func (i *Invoice) Read(ctx context.Context) (err error) {
-	err = config.DB.WithContext(ctx).First(i, "id = ?", i.ID).Error
+	err = config.DB.WithContext(ctx).First(i, "id = ?", i.InvoiceID).Error
+	return
+}
+
+func (i *Invoice) ReadForInvoiceID(ctx context.Context) (err error) {
+	err = config.DB.WithContext(ctx).First(i, "invoice_id = ?", i.InvoiceID).Error
 	return
 }
 
