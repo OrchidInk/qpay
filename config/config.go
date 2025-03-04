@@ -11,6 +11,11 @@ import (
 )
 
 type Config struct {
+
+	Invoice struct {
+		URL string
+	}
+
 	Database struct {
 		Host     string
 		Port     int
@@ -46,7 +51,8 @@ func LoadConfig() *Config {
 	}
 
 	config := &Config{}
-
+	// URL
+	config.Invoice.URL = getEnv("URL", "")
 	// Database Config
 	config.Database.Host = getEnv("DB_HOST", "localhost")
 	config.Database.Port = getEnvAsInt("DB_PORT", 5432)
@@ -58,7 +64,7 @@ func LoadConfig() *Config {
 	config.QPay.Username = getEnv("QPAY_USERNAME", "")
 	config.QPay.Password = getEnv("QPAY_PASSWORD", "")
 	config.QPay.InvoiceCode = getEnv("QPAY_INVOICE_CODE", "INV-000")
-	config.QPay.URL = getEnv("QPAY_URL", "https://merchant-sandbox.qpay.mn/v2")
+	config.QPay.URL = getEnv("QPAY_URL", "https://merchant.qpay.mn/v2")
 	config.QPay.ExpireSeconds = getEnvAsInt("QPAY_INVOICE_EXPIRE_SECONDS", 600)
 
 	// Application Config
