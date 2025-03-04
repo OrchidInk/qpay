@@ -1,3 +1,5 @@
+// models/invoice.go
+
 package models
 
 import (

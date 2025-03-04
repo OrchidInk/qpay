@@ -1,3 +1,4 @@
+// models/init.go
 package models
 
 import "qpay/config"
