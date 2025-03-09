@@ -4,6 +4,7 @@ package models
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"os"
 	"qpay/config"
@@ -14,6 +15,7 @@ import (
 	"gorm.io/gorm"
 )
 
+var ErrNotFound = errors.New("invoice not found")
 var httpClient = &http.Client{}
 var validate = validator.New()
 
@@ -67,6 +69,14 @@ func (i *Invoice) ReadForInvoiceID(ctx context.Context) (err error) {
 	return
 }
 
+func (i *Invoice) ReadForInvoiceNumber(ctx context.Context) (err error) {
+    err = config.DB.WithContext(ctx).First(i, "invoice_number = ?", i.InvoiceNumber).Error
+    if errors.Is(err, gorm.ErrRecordNotFound) {
+        return ErrNotFound
+    }
+    return
+}
+
 func (i *Invoice) Update(ctx context.Context, vals Invoice) (err error) {
 	if err = validate.Struct(vals); err != nil {
 		return
@@ -98,23 +108,3 @@ func (i *Invoice) CallCallbackURL() {
 		}
 	}
 }
-
-// // SetRequestJSON sets the Request field as JSON
-// func (i *Invoice) SetRequestJSON(req map[string]interface{}) error {
-// 	jsonData, err := json.Marshal(req)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	i.Request = jsonData
-// 	return nil
-// }
-
-// // SetResponseJSON sets the Response field as JSON
-// func (i *Invoice) SetResponseJSON(res map[string]interface{}) error {
-// 	jsonData, err := json.Marshal(res)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	i.Response = jsonData
-// 	return nil
-// }

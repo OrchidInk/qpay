@@ -3,6 +3,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"os"
 	"qpay/helpers"
@@ -32,11 +33,11 @@ func CreateInvoice(c echo.Context) error {
         log.Error().Err(err).Msg("Failed to bind request")
         return c.JSON(http.StatusBadRequest, errResponse{
             Code:    ErrBind.Code,
-            Message: err.Error()})
+            Message: err.Error(),
+        })
     }
 
-    // Always create a new invoice without checking existing records
-    createSendInvoice := func() (res map[string]interface{}, err error) {
+    createSendInvoice := func() (map[string]interface{}, error) {
         expireSecondsEnv := os.Getenv("QPAY_INVOICE_EXPIRE_SECONDS")
         if expireSecondsEnv == "" {
             expireSecondsEnv = "600"
@@ -45,7 +46,7 @@ func CreateInvoice(c echo.Context) error {
         expireSeconds, err := strconv.Atoi(expireSecondsEnv)
         if err != nil {
             log.Error().Err(err).Msg("Invalid expiry seconds")
-            return
+            return nil, err
         }
 
         expiryDate := time.Now().Add(time.Duration(expireSeconds) * time.Second)
@@ -64,57 +65,86 @@ func CreateInvoice(c echo.Context) error {
         qpayClient, err := q.NewClient()
         if err != nil {
             log.Error().Err(err).Msg("Failed to create QPay client")
-            return
+            return nil, err
         }
 
         // Create invoice request to QPay
-        var req map[string]interface{}
-        req, res, err = qpayClient.CreateInvoice(requestBody.Amount, requestBody.InvoiceNumber, requestBody.InvoiceReceiverCode, invoice.GenerateCallbackURL(), convertedExpiryDate)
+        req, res, err := qpayClient.CreateInvoice(
+            requestBody.Amount,
+            requestBody.InvoiceNumber,
+            requestBody.InvoiceReceiverCode,
+            invoice.GenerateCallbackURL(),
+            convertedExpiryDate,
+        )
         if err != nil {
             log.Error().Err(err).Msg("Failed to create QPay invoice")
-            return
+            return nil, err
         }
 
         invoiceID, ok := res["invoice_id"].(string)
         if !ok {
             log.Error().Msgf("Failed to retrieve invoice ID from QPay response: %v", res)
-            err = ErrAssertion
-            return
+            return nil, ErrAssertion
         }
 
         jsonReq, err := json.Marshal(req)
         if err != nil {
             log.Error().Err(err).Msg("Failed to marshal request JSON")
-            return
+            return nil, err
         }
 
         jsonRes, err := json.Marshal(res)
         if err != nil {
             log.Error().Err(err).Msg("Failed to marshal response JSON")
-            return
+            return nil, err
         }
 
         log.Info().Msgf("Invoice created: %v", invoiceID)
         invoice.Request = jsonReq
         invoice.Response = jsonRes
         invoice.InvoiceID = invoiceID
-        log.Info().Msgf("Invoice: %v", invoice.InvoiceID)
 
         // Save the invoice to the database
         if err = invoice.Create(c.Request().Context()); err != nil {
             log.Error().Err(err).Msg("Failed to save invoice to database")
-            return
+            return nil, err
         }
 
         return res, nil
     }
 
-    // Directly call createSendInvoice to always create a new invoice
-    res, err := createSendInvoice()
-    if err != nil {
-        return c.JSON(http.StatusBadRequest, errResponse{
-            Code:    ErrCreate.Code,
-            Message: err.Error()})
+    var res map[string]interface{}
+    existingInvoice := models.Invoice{
+        InvoiceNumber: requestBody.InvoiceNumber,
+    }
+    err := existingInvoice.ReadForInvoiceNumber(c.Request().Context())
+
+    if errors.Is(err, models.ErrNotFound) {
+        // ✅ Invoice not found → Proceed with creating a new one
+        log.Info().Msgf("Invoice not found, creating new one: %s", requestBody.InvoiceNumber)
+        res, err = createSendInvoice()
+        if err != nil {
+            return c.JSON(http.StatusBadRequest, errResponse{
+                Code:    ErrCreate.Code,
+                Message: err.Error(),
+            })
+        }
+    } else if err != nil {
+        // ❌ Unexpected database error → Return 500
+        log.Error().Err(err).Msg("Database error while checking existing invoice")
+        return c.JSON(http.StatusInternalServerError, errResponse{
+            Code:    "201",
+            Message: "Database error",
+        })
+    } else {
+        // ✅ Invoice exists → Return existing invoice response
+        if err := json.Unmarshal(existingInvoice.Response, &res); err != nil {
+            log.Error().Err(err).Msg("Failed to unmarshal existing invoice response")
+            return c.JSON(http.StatusInternalServerError, errResponse{
+                Code:    "200",
+                Message: "Failed to process existing invoice data",
+            })
+        }
     }
 
     return c.JSON(http.StatusOK, res)
