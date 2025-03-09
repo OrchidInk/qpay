@@ -35,19 +35,6 @@ func CreateInvoice(c echo.Context) error {
             Message: err.Error()})
     }
 
-    // invoiceIdParam := c.Param("invoiceNumber")
-	// existingInvoice := models.Invoice{InvoiceID: invoiceIdParam}
-    // log.Info().Msgf("Checking invoice: %v", existingInvoice)
-    // invoice := models.Invoice{InvoiceID: invoiceIdParam}
-
-	// err := invoice.ReadForInvoiceID(c.Request().Context())
-    // if err != nil {
-	// 	log.Error().Err(err).Msgf("Could not read invoice: %v", err.Error())
-	// 	return c.JSON(http.StatusBadRequest, errResponse{
-	// 		Code:    ErrRead.Code,
-	// 		Message: err.Error()})
-	// }
-
     // Always create a new invoice without checking existing records
     createSendInvoice := func() (res map[string]interface{}, err error) {
         expireSecondsEnv := os.Getenv("QPAY_INVOICE_EXPIRE_SECONDS")
