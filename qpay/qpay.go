@@ -126,7 +126,7 @@ func (c *QpayClient) CreateInvoice(amount float64,
 	return
 }
 
-func (c *QpayClient) CheckInvoice(InvoiceID string) (isPaid bool, err error) {
+func (c *QpayClient) CheckInvoice(InvoiceID string) (isPaid bool, paymentID string,  err error) {
 
 	// checking and updating access token
 	err = c.checkAndUpdateAccessToken()
@@ -171,8 +171,18 @@ func (c *QpayClient) CheckInvoice(InvoiceID string) (isPaid bool, err error) {
 		return
 	}
 
+
 	// Retrieve and print the value of the "name" key
 	isPaid = res["count"].(float64) > 0
-	log.Info().Msgf("isPaid: %v, Check qpay: %v", isPaid, res)
+
+	if rows, ok := res["rows"].([]interface{}); ok && len(rows) > 0 {
+		if firstRow, ok := rows[0].(map[string]interface{}); ok {
+			if id, ok := firstRow["payment_id"].(string); ok {
+				paymentID = id
+			}
+		}
+	}
+
+	log.Info().Msgf("isPaid: %v, paymentID: %v,  Check qpay: %v", isPaid, paymentID, res)
 	return
 }

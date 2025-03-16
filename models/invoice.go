@@ -42,6 +42,7 @@ type Invoice struct {
 	State         QpayState      `json:"state" gorm:"type:varchar(50);not null;default:'unpaid'"`
 	DeletedAt     gorm.DeletedAt `json:"deletedAt" gorm:"index"`
 	CallbackURL   string         `json:"callbackUrl,omitempty" gorm:"type:text"`
+	PaymentID	  string		 `json:"paymentID,omitempty"`
 }
 
 func MigrateInvoiceModel() {
@@ -88,6 +89,20 @@ func (i *Invoice) Update(ctx context.Context, vals Invoice) (err error) {
 	}
 
 	err = i.Read(ctx)
+	return
+}
+
+func (i *Invoice) UpdateForInvoiceNumber(ctx context.Context, vals Invoice) (err error) {
+	if err = validate.Struct(vals); err != nil {
+		return
+	}
+
+	err = config.DB.WithContext(ctx).Model(i).Updates(vals).Error
+	if err != nil {
+		return
+	}
+
+	err = i.ReadForInvoiceID(ctx)
 	return
 }
 

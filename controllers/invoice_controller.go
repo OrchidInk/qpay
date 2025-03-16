@@ -204,7 +204,7 @@ func CheckInvoice(c echo.Context) error {
 			Code:    ErrBind.Code,
 			Message: err.Error()})
 	}
-	isPaid, err := qpayClient.CheckInvoice(invoiceIdParam)
+	isPaid, paymentID, err := qpayClient.CheckInvoice(invoiceIdParam)
 	if err != nil {
 		log.Error().Err(err).Msgf("Could not check qpay invoice: %v", err.Error())
 		return c.JSON(http.StatusBadRequest, errResponse{
@@ -215,7 +215,7 @@ func CheckInvoice(c echo.Context) error {
 	// updating paid
 	if isPaid {
 		log.Info().Msgf("Invoice is paid: %v", invoiceIdParam)
-		err = invoice.Update(c.Request().Context(), models.Invoice{State: models.Paid})
+		err = invoice.UpdateForInvoiceNumber(c.Request().Context(), models.Invoice{State: models.Paid, PaymentID: paymentID})
 		if err != nil {
 			log.Info().Err(err).Msg("Could not update invoice.")
 			return c.JSON(http.StatusBadRequest, errResponse{
@@ -223,5 +223,7 @@ func CheckInvoice(c echo.Context) error {
 				Message: "Could not update invoice"})
 		}
 	}
-	return c.JSON(http.StatusOK, &echo.Map{"isPaid": invoice.State == models.Paid})
+    return c.JSON(http.StatusOK, response{
+        Message: "Success",
+        Data:    &echo.Map{"isPaid": invoice.State == models.Paid}})
 }
