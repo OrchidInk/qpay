@@ -171,7 +171,6 @@ func (c *QpayClient) CheckInvoice(InvoiceID string) (isPaid bool, paymentID stri
 		return
 	}
 
-
 	// Retrieve and print the value of the "name" key
 	isPaid = res["count"].(float64) > 0
 

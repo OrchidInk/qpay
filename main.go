@@ -59,6 +59,7 @@ func main() {
 
 	// Initialize Invoice routes
 	routes.InvoiceRoute(e)
+	routes.MailRoute(e)
 
 	// Start the server
 	log.Info().Msg("🚀 Server starting on :1323")
