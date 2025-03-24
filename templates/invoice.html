@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0"
     />
-    <title>Order Confirmation</title>
+    <title>Нэхэмжлэх</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -94,24 +94,14 @@
           <!-- <strong>{{.OrderDate}}</strong>. -->
         </p>
         <p>
-          www.orchid .mn сайтаас худалдан авалт хийсэн танд баярлалаа. Бид таны
-          хүргэлтийг 3-48 цагт багтаан заасан хаягт хүргэнэ.
+          Тантай бид бүртгэлтэй дугаараар тань холбогдож захиалгыг
+          баталгаажуултал та түр хүлээнэ үү.
+        </p>
+        <p>
+          <a href="https://orchid.mn/mn">www.orchid.mn</a> сайтад захиалга өгсөн
+          танд баярлалаа.
         </p>
       </div>
-      <div class="order-summary">
-        <ul>
-          <li><strong>Захиалгын дугаар:</strong> {{.OrderNumber}}</li>
-          <li><strong>Total Price:</strong> {{.TotalPrice}}</li>
-          <li><strong>Total Price:</strong> {{.QrData}}</li>
-        </ul>
-      </div>
-      <p>
-        <img
-          src="data:image/png;base64,{{.QrData}}"
-          alt="QR Code"
-          style="max-width: 150px"
-        />
-      </p>
       <div class="footer">
         <p>
           Хэрэв танд асуух зүйл байвал
@@ -119,6 +109,7 @@
           холбогдоно уу.
         </p>
         <p>&copy; 2025 Orchid. Бүх эрх хуулиар хамгаалагдсан.</p>
+        <p>{{.OrderDate}}</p>
       </div>
     </div>
   </body>

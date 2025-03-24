@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Захиалга баталгаажсан. orchid.mn</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        width: 100%;
+        max-width: 600px;
+        margin: 20px auto;
+        background: #ffffff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        text-align: center;
+        padding: 20px;
+        background: #007bff;
+        color: white;
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+      .order-details {
+        margin: 20px 0;
+        padding: 15px;
+        background: #f9f9f9;
+        border-radius: 5px;
+        border-left: 5px solid #007bff;
+      }
+      .order-details p {
+        line-height: 1.6;
+        font-size: 16px;
+        color: #333;
+      }
+      .order-summary {
+        background: #fff;
+        padding: 15px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+        margin-top: 10px;
+      }
+      .order-summary ul {
+        list-style: none;
+        padding: 0;
+      }
+      .order-summary li {
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+      }
+      .order-summary li:last-child {
+        border-bottom: none;
+      }
+      .footer {
+        text-align: center;
+        padding: 20px;
+        font-size: 14px;
+        color: #555;
+        background: #f4f4f4;
+        border-bottom-left-radius: 10px;
+        border-bottom-right-radius: 10px;
+      }
+      .footer a {
+        color: #007bff;
+        text-decoration: none;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Захиалга өгсөнд баярлалаа</h1>
+      </div>
+      <div class="order-details">
+        <p>Сайн байна уу, <strong>{{.CustomerName}}</strong>,</p>
+        <p>Танд энэ өдрийн мэнд хүргэе.</p>
+        <p>
+          Таны <strong>#{{.OrderNumber}}</strong> дугаарт захиалга баталгаажлаа.
+          <!-- <strong>{{.OrderDate}}</strong>. -->
+        </p>
+        <p>
+          www.orchid .mn сайтаас худалдан авалт хийсэн танд баярлалаа. Бид таны
+          хүргэлтийг 3-48 цагт багтаан заасан хаягт хүргэнэ.
+        </p>
+      </div>
+      <div class="order-summary">
+        <ul>
+          <li><strong>Захиалгын дугаар:</strong> {{.OrderNumber}}</li>
+          <li><strong>Нийт үнэ:</strong> {{.TotalPrice}}</li>
+          <!-- <li><strong>Total Price:</strong> {{.QrData}}</li> -->
+        </ul>
+      </div>
+      <!-- <p>
+        <img
+          src="data:image/png;base64,{{.QrData}}"
+          alt="QR Code"
+          style="max-width: 150px"
+        />
+      </p> -->
+      <div class="footer">
+        <p>
+          Хэрэв танд асуух зүйл байвал
+          <a href="mailto:orchid@info.com">orchid@info.com</a>. хаягаар бидэнтэй
+          холбогдоно уу.
+        </p>
+        <p>&copy; 2025 Orchid. Бүх эрх хуулиар хамгаалагдсан.</p>
+        <p>{{.OrderDate}}</p>
+      </div>
+    </div>
+  </body>
+</html>

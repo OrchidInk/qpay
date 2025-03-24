@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -12,89 +14,102 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
-// EmailRequest struct for email request
-type EmailRequest struct {
+// EmailRequest contains complete order details
+type ConfirmedEmail struct {
 	Email        string `json:"email" form:"email"`
 	CustomerName string `json:"customer_name" form:"customer_name"`
 	OrderNumber  string `json:"order_number" form:"order_number"`
 	OrderDate    string `json:"order_date" form:"order_date"`
-	ProductName  string `json:"product_name" form:"product_name"`
 	Quantity     int    `json:"quantity" form:"quantity"`
 	TotalPrice   string `json:"total_price" form:"total_price"`
 	QrData       string `json:"qr_data" form:"qr_data"`
 }
 
-// SendEmailHandler handles email requests
-func SendEmailHandler(c echo.Context) error {
-	var req EmailRequest
-	if err := c.Bind(&req); err != nil {
-		log.Println("Error binding request:", err)
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request format"})
-	}
+// ConfirmedEmail contains basic order creation info
+type Invoice struct {
+	Email        string `json:"email" form:"email"`
+	CustomerName string `json:"customer_name" form:"customer_name"`
+	OrderNumber  string `json:"order_number" form:"order_number"`
+	OrderDate    string `json:"order_date" form:"order_date"`
+}
 
+// SendInvoice sends a full order email
+func SendInvoiceEmail(c echo.Context) error {
+	var req Invoice
+	if err := c.Bind(&req); err != nil {
+		return logAndRespond(c, "Bind Invoice", err, http.StatusBadRequest)
+	}
 	if req.Email == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Email is required"})
 	}
+	return sendTemplatedEmail(c, req.Email, "Захиалгын нэхэмжлэх", "invoice.html", req)
+}
 
-	// Load and render email template
-	emailBody, err := renderEmailTemplate(req)
+// SendEmailOrderHandler sends a basic order creation email
+func SendConfirmedEmail(c echo.Context) error {
+	var req ConfirmedEmail
+	if err := c.Bind(&req); err != nil {
+		return logAndRespond(c, "Bind ConfirmedEmail", err, http.StatusBadRequest)
+	}
+	if req.Email == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Email is required"})
+	}
+	return sendTemplatedEmail(c, req.Email, "Захиалга баталгаажсан", "confirmed.html", req)
+}
+
+// sendTemplatedEmail renders template and sends the email
+func sendTemplatedEmail(c echo.Context, to, subject, templateName string, data any) error {
+	emailBody, err := renderTemplate(templateName, data)
 	if err != nil {
-		log.Println("Error rendering email template:", err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to render email template"})
+		return logAndRespond(c, "Render Template: "+templateName, err, http.StatusInternalServerError)
 	}
 
-	// Send email
-	err = sendMail(req.Email, "Order Confirmation", emailBody)
-	if err != nil {
-		log.Println("Failed to send email:", err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to send email: " + err.Error()})
+	if err := sendMail(to, subject, emailBody); err != nil {
+		return logAndRespond(c, "Send Mail", err, http.StatusInternalServerError)
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"message": "Email sent successfully!"})
 }
 
-// renderEmailTemplate loads the email template and populates it with data
-func renderEmailTemplate(req EmailRequest) (string, error) {
-	templatePath := filepath.Join("templates", "email_template.html")
-	tmpl, err := template.ParseFiles(templatePath)
+// renderTemplate loads and executes the given template
+func renderTemplate(filename string, data any) (string, error) {
+	tmplPath := filepath.Join("templates", filename)
+	tmpl, err := template.ParseFiles(tmplPath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("template parse error: %w", err)
 	}
 
-	var body bytes.Buffer
-	err = tmpl.Execute(&body, req)
-	if err != nil {
-		return "", err
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", fmt.Errorf("template execute error: %w", err)
 	}
-
-	return body.String(), nil
+	return buf.String(), nil
 }
 
 // sendMail sends an email using SMTP
 func sendMail(to, subject, body string) error {
-	MAIL_USERNAME := os.Getenv("MAIL_USERNAME")
-	MAIL_PASSWORD := os.Getenv("MAIL_PASSWORD")
-	SMTP_SERVER := os.Getenv("SMTP_SERVER")
-	SMTP_PORT := 587 // Change if needed
-
-	if MAIL_USERNAME == "" || MAIL_PASSWORD == "" || SMTP_SERVER == "" {
-		log.Println("Missing SMTP credentials")
-		return echo.NewHTTPError(http.StatusInternalServerError, "Missing SMTP credentials")
+	username, password, host, port := getSMTPConfig()
+	if username == "" || password == "" || host == "" {
+		return errors.New("missing SMTP credentials")
 	}
 
 	m := gomail.NewMessage()
-	m.SetHeader("From", MAIL_USERNAME)
+	m.SetHeader("From", username)
 	m.SetHeader("To", to)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", body)
 
-	d := gomail.NewDialer(SMTP_SERVER, SMTP_PORT, MAIL_USERNAME, MAIL_PASSWORD)
+	d := gomail.NewDialer(host, port, username, password)
+	return d.DialAndSend(m)
+}
 
-	if err := d.DialAndSend(m); err != nil {
-		log.Println("Error sending email:", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to send email: "+err.Error())
-	}
+// getSMTPConfig reads SMTP credentials from environment
+func getSMTPConfig() (username, password, host string, port int) {
+	return os.Getenv("MAIL_USERNAME"), os.Getenv("MAIL_PASSWORD"), os.Getenv("SMTP_SERVER"), 587
+}
 
-	log.Println("Email sent successfully to:", to)
-	return nil
+// logAndRespond logs the error and sends JSON response
+func logAndRespond(c echo.Context, context string, err error, status int) error {
+	log.Printf("[%s] %v\n", context, err)
+	return c.JSON(status, map[string]string{"error": fmt.Sprintf("%s: %v", context, err)})
 }

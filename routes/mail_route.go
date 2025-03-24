@@ -8,5 +8,6 @@ import (
 )
 
 func MailRoute(e *echo.Echo) {
-	e.POST("/api/v1/mail", c.SendEmailHandler, m.HeaderAuth)
+	e.POST("/api/v1/mail/invoice", c.SendInvoiceEmail, m.HeaderAuth)
+	e.POST("/api/v1/mail/confirmed", c.SendConfirmedEmail, m.HeaderAuth)
 }
