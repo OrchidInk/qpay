@@ -81,6 +81,7 @@ func isPrivateIP(ip string) bool {
 		"10.0.0.0/8",
 		"192.168.0.0/16",
 		"127.0.0.1",
+		"103.50.205.86",
 	}
 
 	for _, cidr := range privateRanges {
