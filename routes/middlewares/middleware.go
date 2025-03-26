@@ -76,19 +76,33 @@ func HeaderAuth(next echo.HandlerFunc) echo.HandlerFunc {
 
 // isPrivateIP checks if an IP address belongs to private ranges
 func isPrivateIP(ip string) bool {
-	privateRanges := []string{
-		"172.16.0.0/12",
-		"10.0.0.0/8",
-		"192.168.0.0/16",
-		"127.0.0.1",
-		"103.50.205.86",
-	}
+    // Define CIDR ranges for private networks.
+    cidrRanges := []string{
+        "172.16.0.0/12",
+        "10.0.0.0/8",
+        "192.168.0.0/16",
+    }
 
-	for _, cidr := range privateRanges {
-		if _, ipnet, err := net.ParseCIDR(cidr); err == nil && ipnet.Contains(net.ParseIP(ip)) {
-			return true
-		}
-	}
+    // Define single IP addresses.
+    singleIPs := []string{
+        "127.0.0.1",         // loopback
+        "103.50.205.86",     // your server IP
+    }
 
-	return false
+    // Check if the IP matches any of the single IPs.
+    for _, single := range singleIPs {
+        if ip == single {
+            return true
+        }
+    }
+
+    // Check if the IP is within any of the CIDR ranges.
+    for _, cidr := range cidrRanges {
+        _, ipnet, err := net.ParseCIDR(cidr)
+        if err == nil && ipnet.Contains(net.ParseIP(ip)) {
+            return true
+        }
+    }
+
+    return false
 }
