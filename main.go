@@ -48,7 +48,7 @@ func main() {
 
 	// Custom middlewares
 	e.Use(middlewares.PopulateContext)
-	e.Use(middlewares.IPAuth)
+	// e.Use(middlewares.IPAuth)
 
 	// Example API route
 	e.GET("/api", func(c echo.Context) error {
