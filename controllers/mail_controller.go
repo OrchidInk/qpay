@@ -105,7 +105,7 @@ func sendMail(to, subject, body string) error {
 
 // getSMTPConfig reads SMTP credentials from environment
 func getSMTPConfig() (username, password, host string, port int) {
-	return os.Getenv("MAIL_USERNAME"), os.Getenv("MAIL_PASSWORD"), os.Getenv("SMTP_SERVER"), 587
+	return os.Getenv("MAIL_USERNAME"), os.Getenv("MAIL_PASSWORD"), os.Getenv("SMTP_SERVER"), 465
 }
 
 // logAndRespond logs the error and sends JSON response
