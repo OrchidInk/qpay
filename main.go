@@ -32,6 +32,7 @@ func main() {
 		log.Fatal().Msg("❌ Migration failed:")
 	}
 	log.Info().Msg("🚀 Database migrated successfully")
+
 	// Create Echo instance
 	e := echo.New()
 
@@ -46,9 +47,27 @@ func main() {
 		},
 	}))
 
+	// CORS Middleware
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"*"},
+		AllowMethods: []string{
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodDelete,
+			http.MethodOptions,
+		},
+		AllowHeaders: []string{
+			echo.HeaderOrigin,
+			echo.HeaderContentType,
+			echo.HeaderAccept,
+			"X-API-KEY",
+		},
+	}))
+
 	// Custom middlewares
 	e.Use(middlewares.PopulateContext)
-	// e.Use(middlewares.IPAuth)
+	// e.Use(middlewares.IPAuth) // Uncomment if you want IP restriction
 
 	// Example API route
 	e.GET("/api", func(c echo.Context) error {
