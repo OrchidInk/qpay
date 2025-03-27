@@ -100,6 +100,7 @@ func sendMail(to, subject, body string) error {
 	m.SetBody("text/html", body)
 
 	d := gomail.NewDialer(host, port, username, password)
+	d.SSL = true
 	return d.DialAndSend(m)
 }
 
