@@ -48,7 +48,6 @@ func main() {
 	}))
 
 	// CORS Middleware
-	// CORS Middleware
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
 		AllowMethods: []string{
@@ -62,6 +61,7 @@ func main() {
 			echo.HeaderOrigin,
 			echo.HeaderContentType,
 			echo.HeaderAccept,
+			echo.HeaderAuthorization, // <-- Add this
 			"X-API-KEY",
 		},
 	}))
