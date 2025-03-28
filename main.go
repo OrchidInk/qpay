@@ -48,6 +48,7 @@ func main() {
 	}))
 
 	// CORS Middleware
+	// CORS Middleware
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
 		AllowMethods: []string{
