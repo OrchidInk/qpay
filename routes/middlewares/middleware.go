@@ -3,6 +3,7 @@ package middlewares
 import (
 	"context"
 	"net"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -62,6 +63,13 @@ func IPAuth(next echo.HandlerFunc) echo.HandlerFunc {
 // HeaderAuth validates requests using the X-API-KEY header
 func HeaderAuth(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		// If it's an OPTIONS request (the preflight), just return 200 OK and skip auth
+		if c.Request().Method == http.MethodOptions {
+			// You can either return next(c) or simply return 200.
+			// Often, returning 200 is enough for preflight.
+			return c.NoContent(http.StatusOK)
+		}
+
 		key := c.Request().Header.Get("X-API-KEY")
 		expectedKey := os.Getenv("API_KEY")
 
